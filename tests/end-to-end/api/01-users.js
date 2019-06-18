@@ -1,12 +1,8 @@
-/* eslint-env mocha */
-/* globals expect */
-/* eslint no-unused-vars: 0 */
-
 import crypto from 'crypto';
+
 import {
 	getCredentials,
 	api,
-	login,
 	request,
 	credentials,
 	apiEmail,
@@ -17,18 +13,7 @@ import {
 import { adminEmail, preferences, password, adminUsername } from '../../data/user.js';
 import { imgURL } from '../../data/interactions.js';
 import { customFieldText, clearCustomFields, setCustomFields } from '../../data/custom-fields.js';
-
-const updateSetting = (setting, value) => new Promise((resolve) => {
-	request.post(`/api/v1/settings/${ setting }`)
-		.set(credentials)
-		.send({ value })
-		.expect('Content-Type', 'application/json')
-		.expect(200)
-		.expect((res) => {
-			expect(res.body).to.have.property('success', true);
-		})
-		.end(resolve);
-});
+import { updatePermission, updateSetting } from '../../data/permissions.helper';
 
 describe('[Users]', function() {
 	this.retries(0);
@@ -208,6 +193,8 @@ describe('[Users]', function() {
 	});
 
 	describe('[/users.info]', () => {
+		after((done) => updatePermission('view-other-user-channels', ['admin']).then(done));
+
 		it('should query information about a user by userId', (done) => {
 			request.get(api('users.info'))
 				.set(credentials)
@@ -226,8 +213,70 @@ describe('[Users]', function() {
 				})
 				.end(done);
 		});
+		it('should return "rooms" property when user request it and the user has the necessary permission (admin, "view-other-user-channels")', (done) => {
+			request.get(api('users.info'))
+				.set(credentials)
+				.query({
+					userId: targetUser._id,
+					fields: JSON.stringify({ userRooms: 1 }),
+				})
+				.expect('Content-Type', 'application/json')
+				.expect(200)
+				.expect((res) => {
+					expect(res.body).to.have.property('success', true);
+					expect(res.body).to.have.nested.property('user.rooms').and.to.be.an('array');
+				})
+				.end(done);
+		});
+		it('should NOT return "rooms" property when user NOT request it but the user has the necessary permission (admin, "view-other-user-channels")', (done) => {
+			request.get(api('users.info'))
+				.set(credentials)
+				.query({
+					userId: targetUser._id,
+				})
+				.expect('Content-Type', 'application/json')
+				.expect(200)
+				.expect((res) => {
+					expect(res.body).to.have.property('success', true);
+					expect(res.body).to.not.have.nested.property('user.rooms');
+				})
+				.end(done);
+		});
+		it('should return the rooms when the user request your own rooms but he does NOT have the necessary permission', (done) => {
+			updatePermission('view-other-user-channels', []).then(() => {
+				request.get(api('users.info'))
+					.set(credentials)
+					.query({
+						userId: credentials['X-User-Id'],
+						fields: JSON.stringify({ userRooms: 1 }),
+					})
+					.expect('Content-Type', 'application/json')
+					.expect(200)
+					.expect((res) => {
+						expect(res.body).to.have.property('success', true);
+						expect(res.body).to.have.nested.property('user.rooms');
+					})
+					.end(done);
+			});
+		});
+		it('should NOT return the rooms when the user request another user\'s rooms and he does NOT have the necessary permission', (done) => {
+			updatePermission('view-other-user-channels', []).then(() => {
+				request.get(api('users.info'))
+					.set(credentials)
+					.query({
+						userId: targetUser._id,
+						fields: JSON.stringify({ userRooms: 1 }),
+					})
+					.expect('Content-Type', 'application/json')
+					.expect(200)
+					.expect((res) => {
+						expect(res.body).to.have.property('success', true);
+						expect(res.body).to.not.have.nested.property('user.rooms');
+					})
+					.end(done);
+			});
+		});
 	});
-
 	describe('[/users.getPresence]', () => {
 		it('should query a user\'s presence by userId', (done) => {
 			request.get(api('users.getPresence'))
@@ -242,6 +291,75 @@ describe('[Users]', function() {
 					expect(res.body).to.have.nested.property('presence', 'offline');
 				})
 				.end(done);
+		});
+	});
+
+	describe('[/users.presence]', () => {
+		describe('Not logged in:', () => {
+			it('should return 401 unauthorized', (done) => {
+				request.get(api('users.presence'))
+					.expect('Content-Type', 'application/json')
+					.expect(401)
+					.expect((res) => {
+						expect(res.body).to.have.property('message');
+					})
+					.end(done);
+			});
+		});
+		describe('Logged in:', () => {
+			it('should return online users full list', (done) => {
+				request.get(api('users.presence'))
+					.set(credentials)
+					.expect('Content-Type', 'application/json')
+					.expect(200)
+					.expect((res) => {
+						expect(res.body).to.have.property('success', true);
+						expect(res.body).to.have.property('full', true);
+						expect(res.body).to.have.property('users').to.have.property('0').to.deep.have.all.keys(
+							'_id',
+							'username',
+							'name',
+							'status',
+							'utcOffset',
+						);
+					})
+					.end(done);
+			});
+
+			it('should return no online users updated after now', (done) => {
+				request.get(api(`users.presence?from=${ new Date().toISOString() }`))
+					.set(credentials)
+					.expect('Content-Type', 'application/json')
+					.expect(200)
+					.expect((res) => {
+						expect(res.body).to.have.property('success', true);
+						expect(res.body).to.have.property('full', false);
+						expect(res.body).to.have.property('users').that.is.an('array').that.has.lengthOf(0);
+					})
+					.end(done);
+			});
+
+			it('should return full list of online users for more than 10 minutes in the past', (done) => {
+				const date = new Date();
+				date.setMinutes(date.getMinutes() - 11);
+
+				request.get(api(`users.presence?from=${ date.toISOString() }`))
+					.set(credentials)
+					.expect('Content-Type', 'application/json')
+					.expect(200)
+					.expect((res) => {
+						expect(res.body).to.have.property('success', true);
+						expect(res.body).to.have.property('full', true);
+						expect(res.body).to.have.property('users').to.have.property('0').to.deep.have.all.keys(
+							'_id',
+							'username',
+							'name',
+							'status',
+							'utcOffset',
+						);
+					})
+					.end(done);
+			});
 		});
 	});
 
@@ -312,14 +430,16 @@ describe('[Users]', function() {
 				})
 				.end(done);
 		});
+		before((done) => {
+			updatePermission('edit-other-user-info', ['admin', 'user']).then(done);
+		});
 		after((done) => {
 			request.post(api('users.delete')).set(credentials).send({
 				userId: user._id,
-			}).end(done);
+			}).end(() => updatePermission('edit-other-user-info', ['admin']).then(done));
 			user = undefined;
 		});
-
-		it('should set the avatar of the auth user by a local image', (done) => {
+		it('should set the avatar of the logged user by a local image', (done) => {
 			request.post(api('users.setAvatar'))
 				.set(userCredentials)
 				.attach('image', imgURL)
@@ -330,23 +450,23 @@ describe('[Users]', function() {
 				})
 				.end(done);
 		});
-		it('should prevent from updating someone else\'s avatar', (done) => {
+		it('should update the avatar of another user by userId when the logged user has the necessary permission (edit-other-user-info)', (done) => {
 			request.post(api('users.setAvatar'))
 				.set(userCredentials)
 				.attach('image', imgURL)
 				.field({ userId: credentials['X-User-Id'] })
 				.expect('Content-Type', 'application/json')
-				.expect(400)
+				.expect(200)
 				.expect((res) => {
-					expect(res.body).to.have.property('success', false);
+					expect(res.body).to.have.property('success', true);
 				})
 				.end(done);
 		});
-		it('should set the avatar of another user by username and local image', (done) => {
+		it('should set the avatar of another user by username and local image when the logged user has the necessary permission (edit-other-user-info)', (done) => {
 			request.post(api('users.setAvatar'))
 				.set(credentials)
 				.attach('image', imgURL)
-				.field({ username: targetUser.username })
+				.field({ username: adminUsername })
 				.expect('Content-Type', 'application/json')
 				.expect(200)
 				.expect((res) => {
@@ -354,32 +474,23 @@ describe('[Users]', function() {
 				})
 				.end(done);
 		});
-		it('should set the avatar of another user by userId and local image', (done) => {
-			request.post(api('users.setAvatar'))
-				.set(credentials)
-				.attach('image', imgURL)
-				.field({ userId: targetUser._id })
-				.expect('Content-Type', 'application/json')
-				.expect(200)
-				.expect((res) => {
-					expect(res.body).to.have.property('success', true);
-				})
-				.end(done);
+		it.skip('should prevent from updating someone else\'s avatar when the logged user has not the necessary permission(edit-other-user-info)', (done) => {
+			updatePermission('edit-other-user-info', []).then(() => {
+				request.post(api('users.setAvatar'))
+					.set(userCredentials)
+					.attach('image', imgURL)
+					.field({ userId: credentials['X-User-Id'] })
+					.expect('Content-Type', 'application/json')
+					.expect(400)
+					.expect((res) => {
+						expect(res.body).to.have.property('success', false);
+					})
+					.end(done);
+			});
 		});
 	});
 
 	describe('[/users.update]', () => {
-		const updatePermission = (permission, roles) => new Promise((resolve) => {
-			request.post(api('permissions.update'))
-				.set(credentials)
-				.send({ permissions: [{ _id: permission, roles }] })
-				.expect('Content-Type', 'application/json')
-				.expect(200)
-				.expect((res) => {
-					expect(res.body).to.have.property('success', true);
-				})
-				.end(resolve);
-		});
 		before((done) => {
 			updateSetting('Accounts_AllowUserProfileChange', true)
 				.then(() => updateSetting('Accounts_AllowUsernameChange', true))
@@ -954,13 +1065,13 @@ describe('[Users]', function() {
 			});
 		});
 
-		describe('Testing if the returned token is valid:', (done) => {
+		describe('Testing if the returned token is valid:', () => {
 			it('should return 200', (done) => request.post(api('users.createToken'))
 				.set(credentials)
 				.send({ username: user.username })
 				.expect('Content-Type', 'application/json')
-				.end((err, res) => (err ? done() :
-					request.get(api('me'))
+				.end((err, res) => (err ? done()
+					: request.get(api('me'))
 						.set({ 'X-Auth-Token': `${ res.body.data.authToken }`, 'X-User-Id': res.body.data.userId })
 						.expect(200)
 						.expect((res) => {
@@ -974,15 +1085,39 @@ describe('[Users]', function() {
 
 	describe('[/users.setPreferences]', () => {
 		it('should set some preferences by user when execute successfully', (done) => {
-			preferences.userId = credentials['X-User-Id'];
+			const userPreferences = {
+				userId: credentials['X-User-Id'],
+				data: {
+					...preferences.data,
+				},
+			};
 			request.post(api('users.setPreferences'))
 				.set(credentials)
-				.send(preferences)
+				.send(userPreferences)
 				.expect(200)
 				.expect('Content-Type', 'application/json')
 				.expect((res) => {
-					expect(res.body.user.settings.preferences).to.be.eql(preferences.data);
+					expect(Object.keys(res.body.user.settings.preferences)).to.include.members(Object.keys(userPreferences.data));
 					expect(res.body).to.have.property('success', true);
+				})
+				.end(done);
+		});
+		it('should set some preferences and language preference by user when execute successfully', (done) => {
+			const userPreferences = {
+				userId: credentials['X-User-Id'],
+				data: {
+					...preferences.data,
+					language: 'en',
+				},
+			};
+			request.post(api('users.setPreferences'))
+				.set(credentials)
+				.send(userPreferences)
+				.expect(200)
+				.expect('Content-Type', 'application/json')
+				.expect((res) => {
+					expect(res.body).to.have.property('success', true);
+					expect(res.body.user.settings.preferences).to.have.property('language', 'en');
 				})
 				.end(done);
 		});
@@ -990,12 +1125,16 @@ describe('[Users]', function() {
 
 	describe('[/users.getPreferences]', () => {
 		it('should return all preferences when execute successfully', (done) => {
+			const userPreferences = {
+				...preferences.data,
+				language: 'en',
+			};
 			request.get(api('users.getPreferences'))
 				.set(credentials)
 				.expect(200)
 				.expect('Content-Type', 'application/json')
 				.expect((res) => {
-					expect(res.body.preferences).to.be.eql(preferences.data);
+					expect(res.body.preferences).to.be.eql(userPreferences);
 					expect(res.body).to.have.property('success', true);
 				})
 				.end(done);
@@ -1077,7 +1216,6 @@ describe('[Users]', function() {
 				})
 				.end(done);
 		});
-
 	});
 
 	describe('[/users.deleteOwnAccount]', () => {
@@ -1129,6 +1267,7 @@ describe('[Users]', function() {
 		});
 
 		it('should delete user own account', (done) => {
+			browser.pause(500);
 			request.post(api('users.deleteOwnAccount'))
 				.set(userCredentials)
 				.send({
@@ -1141,7 +1280,6 @@ describe('[Users]', function() {
 				})
 				.end(done);
 		});
-
 	});
 
 	describe('[/users.delete]', () => {
@@ -1212,17 +1350,20 @@ describe('[Users]', function() {
 	describe('Personal Access Tokens', () => {
 		const tokenName = `${ Date.now() }token`;
 		describe('successful cases', () => {
-			it('Enable "API_Enable_Personal_Access_Tokens" setting...', (done) => {
-				request.post('/api/v1/settings/API_Enable_Personal_Access_Tokens')
-					.set(credentials)
-					.send({ value: true })
-					.expect('Content-Type', 'application/json')
-					.expect(200)
-					.expect((res) => {
-						expect(res.body).to.have.property('success', true);
-					})
-					.end(done);
+			describe('[/users.getPersonalAccessTokens]', () => {
+				it('should return an array when the user does not have personal tokens configured', (done) => {
+					request.get(api('users.getPersonalAccessTokens'))
+						.set(credentials)
+						.expect('Content-Type', 'application/json')
+						.expect(200)
+						.expect((res) => {
+							expect(res.body).to.have.property('success', true);
+							expect(res.body).to.have.property('tokens').and.to.be.an('array');
+						})
+						.end(done);
+				});
 			});
+			it('Grant necessary permission "create-personal-accss-tokens" to user', (done) => updatePermission('create-personal-access-tokens', ['admin']).then(done));
 			describe('[/users.generatePersonalAccessToken]', () => {
 				it('should return a personal access token to user', (done) => {
 					request.post(api('users.generatePersonalAccessToken'))
@@ -1324,18 +1465,8 @@ describe('[Users]', function() {
 			});
 		});
 		describe('unsuccessful cases', () => {
-			it('disable "API_Enable_Personal_Access_Tokens" setting...', (done) => {
-				request.post('/api/v1/settings/API_Enable_Personal_Access_Tokens')
-					.set(credentials)
-					.send({ value: false })
-					.expect('Content-Type', 'application/json')
-					.expect(200)
-					.expect((res) => {
-						expect(res.body).to.have.property('success', true);
-					})
-					.end(done);
-			});
-			describe('should return an error when setting "API_Enable_Personal_Access_Tokens" is disabled for the following routes', () => {
+			it('Remove necessary permission "create-personal-accss-tokens" to user', (done) => updatePermission('create-personal-access-tokens', []).then(done));
+			describe('should return an error when the user dont have the necessary permission "create-personal-access-tokens"', () => {
 				it('/users.generatePersonalAccessToken', (done) => {
 					request.post(api('users.generatePersonalAccessToken'))
 						.set(credentials)
@@ -1346,7 +1477,7 @@ describe('[Users]', function() {
 						.expect(400)
 						.expect((res) => {
 							expect(res.body).to.have.property('success', false);
-							expect(res.body.errorType).to.be.equal('error-personal-access-tokens-are-current-disabled');
+							expect(res.body.errorType).to.be.equal('not-authorized');
 						})
 						.end(done);
 				});
@@ -1360,7 +1491,7 @@ describe('[Users]', function() {
 						.expect(400)
 						.expect((res) => {
 							expect(res.body).to.have.property('success', false);
-							expect(res.body.errorType).to.be.equal('error-personal-access-tokens-are-current-disabled');
+							expect(res.body.errorType).to.be.equal('not-authorized');
 						})
 						.end(done);
 				});
@@ -1371,7 +1502,7 @@ describe('[Users]', function() {
 						.expect(400)
 						.expect((res) => {
 							expect(res.body).to.have.property('success', false);
-							expect(res.body.errorType).to.be.equal('error-personal-access-tokens-are-current-disabled');
+							expect(res.body.errorType).to.be.equal('not-authorized');
 						})
 						.end(done);
 				});
@@ -1385,7 +1516,7 @@ describe('[Users]', function() {
 						.expect(400)
 						.expect((res) => {
 							expect(res.body).to.have.property('success', false);
-							expect(res.body.errorType).to.be.equal('error-personal-access-tokens-are-current-disabled');
+							expect(res.body.errorType).to.be.equal('not-authorized');
 						})
 						.end(done);
 				});
@@ -1399,10 +1530,126 @@ describe('[Users]', function() {
 						.expect(400)
 						.expect((res) => {
 							expect(res.body).to.have.property('success', false);
-							expect(res.body.errorType).to.be.equal('error-personal-access-tokens-are-current-disabled');
+							expect(res.body.errorType).to.be.equal('not-authorized');
 						})
 						.end(done);
 				});
+			});
+		});
+	});
+
+	describe('[/users.setActiveStatus]', () => {
+		let user;
+		before((done) => {
+			const username = `user.test.${ Date.now() }`;
+			const email = `${ username }@rocket.chat`;
+			request.post(api('users.create'))
+				.set(credentials)
+				.send({ email, name: username, username, password })
+				.end((err, res) => {
+					user = res.body.user;
+					done();
+				});
+		});
+		let userCredentials;
+		before((done) => {
+			request.post(api('login'))
+				.send({
+					user: user.username,
+					password,
+				})
+				.expect('Content-Type', 'application/json')
+				.expect(200)
+				.expect((res) => {
+					userCredentials = {};
+					userCredentials['X-Auth-Token'] = res.body.data.authToken;
+					userCredentials['X-User-Id'] = res.body.data.userId;
+				})
+				.end(done);
+		});
+		before((done) => {
+			updatePermission('edit-other-user-active-status', ['admin', 'user']).then(done);
+		});
+		after((done) => {
+			request.post(api('users.delete')).set(credentials).send({
+				userId: user._id,
+			}).end(() => updatePermission('edit-other-user-active-status', ['admin']).then(done));
+			user = undefined;
+		});
+		it('should set other user active status to false when the logged user has the necessary permission(edit-other-user-active-status)', (done) => {
+			request.post(api('users.setActiveStatus'))
+				.set(userCredentials)
+				.send({
+					activeStatus: false,
+					userId: targetUser._id,
+				})
+				.expect('Content-Type', 'application/json')
+				.expect(200)
+				.expect((res) => {
+					expect(res.body).to.have.property('success', true);
+					expect(res.body).to.have.nested.property('user.active', false);
+				})
+				.end(done);
+		});
+		it('should set other user active status to true when the logged user has the necessary permission(edit-other-user-active-status)', (done) => {
+			request.post(api('users.setActiveStatus'))
+				.set(userCredentials)
+				.send({
+					activeStatus: true,
+					userId: targetUser._id,
+				})
+				.expect('Content-Type', 'application/json')
+				.expect(200)
+				.expect((res) => {
+					expect(res.body).to.have.property('success', true);
+					expect(res.body).to.have.nested.property('user.active', true);
+				})
+				.end(done);
+		});
+		it('should return an error when trying to set other user active status and has not the necessary permission(edit-other-user-active-status)', (done) => {
+			updatePermission('edit-other-user-active-status', []).then(() => {
+				request.post(api('users.setActiveStatus'))
+					.set(userCredentials)
+					.send({
+						activeStatus: false,
+						userId: targetUser._id,
+					})
+					.expect('Content-Type', 'application/json')
+					.expect(403)
+					.expect((res) => {
+						expect(res.body).to.have.property('success', false);
+					})
+					.end(done);
+			});
+		});
+		it('should return an error when trying to set user own active status and has not the necessary permission(edit-other-user-active-status)', (done) => {
+			request.post(api('users.setActiveStatus'))
+				.set(userCredentials)
+				.send({
+					activeStatus: false,
+					userId: user._id,
+				})
+				.expect('Content-Type', 'application/json')
+				.expect(403)
+				.expect((res) => {
+					expect(res.body).to.have.property('success', false);
+				})
+				.end(done);
+		});
+		it('should set user own active status to false when the user has the necessary permission(edit-other-user-active-status)', (done) => {
+			updatePermission('edit-other-user-active-status', ['admin']).then(() => {
+				request.post(api('users.setActiveStatus'))
+					.set(userCredentials)
+					.send({
+						activeStatus: false,
+						userId: user._id,
+					})
+					.expect('Content-Type', 'application/json')
+					.expect(403)
+					.expect((res) => {
+						expect(res.body).to.have.property('success', false);
+					})
+					.end(done);
 			});
 		});
 	});
