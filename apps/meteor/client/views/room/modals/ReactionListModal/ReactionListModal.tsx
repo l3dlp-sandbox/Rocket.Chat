@@ -1,18 +1,17 @@
+import type { IMessage } from '@rocket.chat/core-typings';
 import { useMutableCallback } from '@rocket.chat/fuselage-hooks';
+import { useTranslation } from '@rocket.chat/ui-contexts';
 import React, { ReactElement } from 'react';
 
 import { openUserCard } from '../../../../../app/ui/client/lib/UserCard';
-import { IMessage } from '../../../../../definition/IMessage';
 import GenericModal from '../../../../components/GenericModal';
-import { useTranslation } from '../../../../contexts/TranslationContext';
+import { ToolboxContextValue } from '../../contexts/ToolboxContext';
 import Reactions from './Reactions';
 
 type ReactionListProps = {
 	rid: string;
 	reactions: Required<IMessage>['reactions'];
-	tabBar: {
-		openUserInfo: (username: string) => void;
-	};
+	tabBar: ToolboxContextValue;
 	onClose: () => void;
 };
 
@@ -33,7 +32,7 @@ const ReactionList = ({ rid, reactions, tabBar, onClose }: ReactionListProps): R
 			open: (e: React.MouseEvent<HTMLElement>) => {
 				e.preventDefault();
 				onClose();
-				tabBar.openUserInfo(username);
+				tabBar.openRoomInfo(username);
 			},
 		});
 	});

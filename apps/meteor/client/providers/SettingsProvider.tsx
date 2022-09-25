@@ -1,12 +1,10 @@
+import { SettingsContext, SettingsContextValue, useAtLeastOnePermission, useMethod } from '@rocket.chat/ui-contexts';
 import { Tracker } from 'meteor/tracker';
 import React, { useCallback, useEffect, useMemo, useState, FunctionComponent } from 'react';
 
-import { useAtLeastOnePermission } from '../contexts/AuthorizationContext';
-import { useMethod } from '../contexts/ServerContext';
-import { SettingsContext, SettingsContextValue } from '../contexts/SettingsContext';
+import { createReactiveSubscriptionFactory } from '../lib/createReactiveSubscriptionFactory';
 import { PrivateSettingsCachedCollection } from '../lib/settings/PrivateSettingsCachedCollection';
 import { PublicSettingsCachedCollection } from '../lib/settings/PublicSettingsCachedCollection';
-import { createReactiveSubscriptionFactory } from './createReactiveSubscriptionFactory';
 
 type SettingsProviderProps = {
 	readonly privileged?: boolean;

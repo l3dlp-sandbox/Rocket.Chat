@@ -1,3 +1,4 @@
+import type { AtLeast, ValueOf } from '@rocket.chat/core-typings';
 import { Session } from 'meteor/session';
 
 import { hasPermission } from '../../../../app/authorization/client';
@@ -5,10 +6,8 @@ import { LivechatInquiry } from '../../../../app/livechat/client/collections/Liv
 import { ChatRoom, ChatSubscription } from '../../../../app/models/client';
 import { settings } from '../../../../app/settings/client';
 import { getAvatarURL } from '../../../../app/utils/lib/getAvatarURL';
-import type { IOmnichannelRoom } from '../../../../definition/IRoom';
 import type { IRoomTypeClientDirectives } from '../../../../definition/IRoomTypeConfig';
 import { RoomSettingsEnum, RoomMemberActions, UiTextContext } from '../../../../definition/IRoomTypeConfig';
-import type { AtLeast, ValueOf } from '../../../../definition/utils';
 import { getLivechatRoomType } from '../../../../lib/rooms/roomTypes/livechat';
 import { roomCoordinator } from '../roomCoordinator';
 
@@ -30,16 +29,6 @@ roomCoordinator.add(LivechatRoomType, {
 
 	roomName(room) {
 		return room.name || room.fname || (room as any).label;
-	},
-
-	openCustomProfileTab(instance, room, username) {
-		const omniRoom = room as IOmnichannelRoom;
-		if (!omniRoom?.v || (omniRoom.v as any).username !== username) {
-			return false;
-		}
-
-		instance.tabBar.openUserInfo();
-		return true;
 	},
 
 	getUiText(context) {
@@ -64,7 +53,7 @@ roomCoordinator.add(LivechatRoomType, {
 	getUserStatus(rid) {
 		const room = Session.get(`roomData${rid}`);
 		if (room) {
-			return room.v && room.v.status;
+			return room.v?.status;
 		}
 		const inquiry = LivechatInquiry.findOne({ rid });
 		return inquiry?.v?.status;

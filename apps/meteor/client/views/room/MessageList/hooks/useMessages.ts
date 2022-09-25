@@ -1,11 +1,15 @@
+import { IRoom, IMessage } from '@rocket.chat/core-typings';
+import { Mongo } from 'meteor/mongo';
 import { useCallback, useMemo } from 'react';
 
 import { ChatMessage } from '../../../../../app/models/client';
-import { IMessage } from '../../../../../definition/IMessage';
-import { IRoom } from '../../../../../definition/IRoom';
-// import { useSetting } from '../../../../contexts/SettingsContext';
-import { useUserPreference } from '../../../../contexts/UserContext';
 import { useReactiveValue } from '../../../../hooks/useReactiveValue';
+import { useMessageListContext } from '../contexts/MessageListContext';
+import {
+	MessageWithMdEnforced,
+	parseMessageTextToAstMarkdown,
+	removePossibleNullMessageValues,
+} from '../lib/parseMessageTextToAstMarkdown';
 
 const options = {
 	sort: {
@@ -13,27 +17,34 @@ const options = {
 	},
 };
 
-export const useMessages = ({ rid }: { rid: IRoom['_id'] }): IMessage[] => {
-	const showInMainThread = useUserPreference<boolean>('showMessageInMainThread', false);
-	// const hideSettings = !!useSetting('Hide_System_Messages');
+export const useMessages = ({ rid }: { rid: IRoom['_id'] }): MessageWithMdEnforced[] => {
+	const { autoTranslateLanguage, katex, showColors, useShowTranslated } = useMessageListContext();
 
-	// const room = Rooms.findOne(rid, { fields: { sysMes: 1 } });
-	// const settingValues = Array.isArray(room.sysMes) ? room.sysMes : hideSettings || [];
-	// const hideMessagesOfType = new Set(settingValues.reduce((array, value) => [...array, ...value === 'mute_unmute' ? ['user-muted', 'user-unmuted'] : [value]], []));
-	const query = useMemo(
+	const normalizeMessage = useMemo(() => {
+		const parseOptions = {
+			colors: showColors,
+			emoticons: true,
+			...(Boolean(katex) && {
+				katex: {
+					dollarSyntax: katex?.dollarSyntaxEnabled,
+					parenthesisSyntax: katex?.parenthesisSyntaxEnabled,
+				},
+			}),
+		};
+		return (message: IMessage): MessageWithMdEnforced =>
+			parseMessageTextToAstMarkdown(removePossibleNullMessageValues(message), parseOptions, autoTranslateLanguage, useShowTranslated);
+	}, [autoTranslateLanguage, katex, showColors, useShowTranslated]);
+
+	const query: Mongo.Query<IMessage> = useMemo(
 		() => ({
 			rid,
 			_hidden: { $ne: true },
-			...(!showInMainThread && {
-				$or: [{ tmid: { $exists: 0 } }, { tshow: { $eq: true } }],
-			}),
+			$or: [{ tmid: { $exists: false } }, { tshow: { $eq: true } }],
 		}),
-		[rid, showInMainThread],
+		[rid],
 	);
 
-	// if (hideMessagesOfType.size) {
-	// 	query.t = { $nin: Array.from(hideMessagesOfType.values()) };
-	// }
-
-	return useReactiveValue<IMessage[]>(useCallback(() => ChatMessage.find(query, options).fetch(), [query]));
+	return useReactiveValue<MessageWithMdEnforced[]>(
+		useCallback(() => ChatMessage.find(query, options).fetch().map(normalizeMessage), [query, normalizeMessage]),
+	);
 };

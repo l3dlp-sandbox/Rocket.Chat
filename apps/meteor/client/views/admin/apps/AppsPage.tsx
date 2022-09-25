@@ -1,12 +1,9 @@
 import { Button, ButtonGroup, Icon, Skeleton, Tabs } from '@rocket.chat/fuselage';
+import { useRoute, useSetting, useMethod, useTranslation } from '@rocket.chat/ui-contexts';
 import React, { useEffect, useState, ReactElement } from 'react';
 
 import Page from '../../../components/Page';
-import { useRoute } from '../../../contexts/RouterContext';
-import { useMethod } from '../../../contexts/ServerContext';
-import { useSetting } from '../../../contexts/SettingsContext';
-import { useTranslation } from '../../../contexts/TranslationContext';
-import AppsTable from './AppsTable';
+import AppsPageContent from './AppsPageContent';
 
 type AppsPageProps = {
 	isMarketplace: boolean;
@@ -39,7 +36,7 @@ const AppsPage = ({ isMarketplace }: AppsPageProps): ReactElement => {
 	};
 
 	return (
-		<Page>
+		<Page background='tint'>
 			<Page.Header title={t('Apps')}>
 				<ButtonGroup>
 					{isMarketplace && !isLoggedInCloud && (
@@ -64,12 +61,18 @@ const AppsPage = ({ isMarketplace }: AppsPageProps): ReactElement => {
 				<Tabs.Item onClick={(): void => marketplaceRoute.push({ context: '' })} selected={isMarketplace}>
 					{t('Marketplace')}
 				</Tabs.Item>
-				<Tabs.Item onClick={(): void => marketplaceRoute.push({ context: 'installed' })} selected={!isMarketplace}>
+				<Tabs.Item
+					onClick={(): void => marketplaceRoute.push({ context: 'installed' })}
+					selected={!isMarketplace}
+					mbe='neg-x4'
+					borderWidth='0'
+					borderBlockWidth='x4'
+				>
 					{t('Installed')}
 				</Tabs.Item>
 			</Tabs>
-			<Page.Content>
-				<AppsTable isMarketplace={isMarketplace} />
+			<Page.Content overflowY='auto'>
+				<AppsPageContent isMarketplace={isMarketplace} />
 			</Page.Content>
 		</Page>
 	);

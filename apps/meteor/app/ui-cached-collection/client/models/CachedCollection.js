@@ -12,6 +12,7 @@ import { callbacks } from '../../../../lib/callbacks';
 import Notifications from '../../../notifications/client/lib/Notifications';
 import { getConfig } from '../../../../client/lib/utils/getConfig';
 import { call } from '../../../../client/lib/utils/call';
+import { omit } from '../../../../lib/utils/omit';
 
 const wrap =
 	(fn) =>
@@ -129,7 +130,7 @@ export class CachedCollection extends Emitter {
 		userRelated = true,
 		listenChangesForLoggedUsersOnly = false,
 		useSync = true,
-		version = 16,
+		version = 17,
 		maxCacheTime = 60 * 60 * 24 * 30,
 		onSyncData = (/* action, record */) => {},
 	}) {
@@ -228,7 +229,7 @@ export class CachedCollection extends Emitter {
 		this.log(`${data.length} records loaded from server`);
 		data.forEach((record) => {
 			callbacks.run(`cachedCollection-loadFromServer-${this.name}`, record, 'changed');
-			this.collection.direct.upsert({ _id: record._id }, _.omit(record, '_id'));
+			this.collection.direct.upsert({ _id: record._id }, omit(record, '_id'));
 
 			this.onSyncData('changed', record);
 
@@ -274,7 +275,6 @@ export class CachedCollection extends Emitter {
 	}
 
 	async setupListener(eventType, eventName) {
-		const { RoomManager } = await import('../../../ui-utils');
 		const { ChatRoom, CachedChatRoom } = await import('../../../models');
 		Notifications[eventType || this.eventType](eventName || this.eventName, (t, record) => {
 			this.log('record received', t, record);
@@ -290,10 +290,6 @@ export class CachedCollection extends Emitter {
 					room = this.collection.findOne({
 						_id: record._id,
 					});
-				}
-				if (room) {
-					room.name && RoomManager.close(room.t + room.name);
-					!room.name && RoomManager.close(room.t + room._id);
 				}
 				this.collection.remove(record._id);
 			} else {

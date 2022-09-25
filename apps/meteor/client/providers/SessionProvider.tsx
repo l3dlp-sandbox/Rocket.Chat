@@ -1,8 +1,8 @@
+import { SessionContext } from '@rocket.chat/ui-contexts';
 import { Session } from 'meteor/session';
 import React, { FC } from 'react';
 
-import { SessionContext } from '../contexts/SessionContext';
-import { createReactiveSubscriptionFactory } from './createReactiveSubscriptionFactory';
+import { createReactiveSubscriptionFactory } from '../lib/createReactiveSubscriptionFactory';
 
 const contextValue = {
 	query: createReactiveSubscriptionFactory<unknown>((name) => Session.get(name)),

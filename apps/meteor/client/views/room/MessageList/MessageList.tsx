@@ -1,12 +1,9 @@
+import { isThreadMessage, IThreadMessage, IRoom } from '@rocket.chat/core-typings';
 import { MessageDivider } from '@rocket.chat/fuselage';
-import React, { FC, Fragment, memo } from 'react';
+import { useUserSubscription, useSetting, useTranslation } from '@rocket.chat/ui-contexts';
+import React, { Fragment, memo, ReactElement } from 'react';
 
 import { MessageTypes } from '../../../../app/ui-utils/client';
-import { isThreadMessage, IThreadMessage } from '../../../../definition/IMessage';
-import { IRoom } from '../../../../definition/IRoom';
-import { useSetting } from '../../../contexts/SettingsContext';
-import { useTranslation } from '../../../contexts/TranslationContext';
-import { useUserSubscription } from '../../../contexts/UserContext';
 import { useFormatDate } from '../../../hooks/useFormatDate';
 import { MessageProvider } from '../providers/MessageProvider';
 import { SelectedMessagesProvider } from '../providers/SelectedMessagesProvider';
@@ -21,7 +18,11 @@ import { isOwnUserMessage } from './lib/isOwnUserMessage';
 import MessageHighlightProvider from './providers/MessageHighlightProvider';
 import { MessageListProvider } from './providers/MessageListProvider';
 
-export const MessageList: FC<{ rid: IRoom['_id'] }> = ({ rid }) => {
+type MessageListProps = {
+	rid: IRoom['_id'];
+};
+
+export const MessageList = ({ rid }: MessageListProps): ReactElement => {
 	const t = useTranslation();
 	const messages = useMessages({ rid });
 	const subscription = useUserSubscription(rid);
@@ -49,6 +50,10 @@ export const MessageList: FC<{ rid: IRoom['_id'] }> = ({ rid }) => {
 							const isSystemMessage = MessageTypes.isSystemMessage(message);
 							const shouldShowMessage = !isThreadMessage(message) && !isSystemMessage;
 
+							const unread = Boolean(subscription?.tunread?.includes(message._id));
+							const mention = Boolean(subscription?.tunreadUser?.includes(message._id));
+							const all = Boolean(subscription?.tunreadGroup?.includes(message._id));
+
 							return (
 								<Fragment key={message._id}>
 									{shouldShowDivider && (
@@ -69,7 +74,9 @@ export const MessageList: FC<{ rid: IRoom['_id'] }> = ({ rid }) => {
 											data-qa-type='message'
 											sequential={shouldShowAsSequential}
 											message={message}
-											subscription={subscription}
+											unread={unread}
+											mention={mention}
+											all={all}
 										/>
 									)}
 
