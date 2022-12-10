@@ -1,5 +1,4 @@
 {
-  "403": "Забрањен",
   "500": "Интерна грешка сервера",
   "@username": "@корисничко име",
   "@username_message": "@ корисничко име <message>",
@@ -1029,7 +1028,6 @@
   "File_uploaded": "Датотека је отпремљена",
   "files": "фајлови",
   "Files_only": "Само уклоните приложене датотеке, задржите поруке",
-  "files_pruned": "датотеке обрезане",
   "FileUpload": "Отпремање датотека",
   "FileUpload_Disabled": "Онемогућено је постављање датотека.",
   "FileUpload_Enabled": "Отпремање датотека је омогућено",
@@ -2391,7 +2389,7 @@
   "Use_User_Preferences_or_Global_Settings": "Користите Усер Преференцес или Глобал Сеттингс",
   "User": "Корисник",
   "User__username__is_now_a_moderator_of__room_name_": "Корисник __username__ је сада модератор за __room_name__",
-  "User__username__is_now_a_owner_of__room_name_": "Корисник __username__ је сада власник __room_name__",
+  "User__username__is_now_an_owner_of__room_name_": "Корисник __username__ је сада власник __room_name__",
   "User__username__removed_from__room_name__moderators": "Корисник __username__ уклоњен из модератори __room_name__",
   "User_added": "Корисник/ца додат(а)",
   "User_added_by": "Корисник/ца __user_added__ је додат(а) од стране __user_by__.",
@@ -2590,5 +2588,15 @@
   "Your_password_is_wrong": "Ваша лозинка није у реду!",
   "Your_push_was_sent_to_s_devices": "Ваш притиском је послат на %s уређајима",
   "Your_server_link": "Веза са сервером",
-  "Your_workspace_is_ready": "Ваш радни простор је спреман за кориштење 🎉"
+  "Your_workspace_is_ready": "Ваш радни простор је спреман за кориштење 🎉",
+  "registration.page.login.errors.wrongCredentials": "Корисник није пронађен или нетачно лозинка",
+  "registration.page.registration.waitActivationWarning": "Пре него што се пријавите, ваш налог мора да буде ручно активиран од стране администратора.",
+  "registration.page.resetPassword.sent": "Ако је ова е-пошта регистрована, пошаљитећемо упутства о томе како да ресетујете своју лозинку. Ако ускоро не примите е-пошту, вратите се и покушајте поново.",
+  "registration.component.login": "Пријава",
+  "registration.component.login.userNotFound": "Корисник није пронађен",
+  "registration.component.resetPassword": "Поново постави лозинку",
+  "registration.component.form.email": "Е-пошта",
+  "registration.component.form.password": "Лозинка",
+  "registration.component.form.divider": "или",
+  "registration.component.form.submit": "Пошаљи"
 }

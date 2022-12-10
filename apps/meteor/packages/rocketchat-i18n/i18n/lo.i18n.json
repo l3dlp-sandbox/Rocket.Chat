@@ -1,5 +1,4 @@
 {
-  "403": "ຫ້າມ",
   "500": "ເກີດຂໍ້ຜິດພາດຂອງເຄື່ອງແມ່ຂ່າຍພາຍໃນ",
   "__count__empty_rooms_will_be_removed_automatically": "__count__ ຫ້ອງທີ່ຫວ່າງຈະຖືກລືບອອກໂດຍອັດຕະໂນມັດ.",
   "__count__empty_rooms_will_be_removed_automatically__rooms__": "__count__ ຫ້ອງທີ່ຫວ່າງຈະຖືກລືບອອກໂດຍອັດຕະໂນມັດ: <br/> __rooms__.",
@@ -1175,7 +1174,6 @@
   "File_uploaded": "File uploaded",
   "files": "ໄຟລ໌",
   "Files_only": "ພຽງແຕ່ເອົາໄຟລ໌ທີ່ຕິດຄັດໄວ້, ເກັບຂໍ້ຄວາມ",
-  "files_pruned": "ໄຟລ໌ຖືກຕັດອອກ",
   "FileUpload": "Upload file",
   "FileUpload_Disabled": "ອັບໂຫລດໄຟລ໌ແມ່ນຖືກປິດໃຊ້ງານ.",
   "FileUpload_Enabled": "ອັບໂຫຼດໄຟລ໌ທີ່ເປີດໃຊ້ວຽກ",
@@ -2617,7 +2615,7 @@
   "User": "ຜູ້ໃຊ້",
   "User__username__is_now_a_leader_of__room_name_": "__username__ ຜູ້ນໍາໃຊ້ແມ່ນຜູ້ນໍາ __room_name__",
   "User__username__is_now_a_moderator_of__room_name_": "__username__ ຜູ້ໃຊ້ໃນປັດຈຸບັນເປັນຜູ້ເບິ່ງແລຂອງ __room_name__",
-  "User__username__is_now_a_owner_of__room_name_": "__username__ ຜູ້ໃຊ້ໃນປັດຈຸບັນເປັນເຈົ້າຂອງ __room_name__ ເປັນ",
+  "User__username__is_now_an_owner_of__room_name_": "__username__ ຜູ້ໃຊ້ໃນປັດຈຸບັນເປັນເຈົ້າຂອງ __room_name__ ເປັນ",
   "User__username__removed_from__room_name__leaders": "__username__ ຜູ້ໃຊ້ຖືກລຶບອອກຈາກຜູ້ນໍາ __room_name__",
   "User__username__removed_from__room_name__moderators": "__username__ ຜູ້ໃຊ້ໂຍກຍ້າຍອອກຈາກປະດິດ __room_name__",
   "User__username__removed_from__room_name__owners": "__username__ ຜູ້ໃຊ້ໂຍກຍ້າຍອອກຈາກເຈົ້າຂອງ __room_name__",
@@ -2830,5 +2828,17 @@
   "Your_password_is_wrong": "ລະຫັດຜ່ານຂອງທ່ານແມ່ນຜິດພາດ!",
   "Your_push_was_sent_to_s_devices": "ການຊຸກຍູ້ຂອງທ່ານໄດ້ຖືກສົ່ງໄປອຸປະກອນ %s",
   "Your_server_link": "ເຊື່ອມຕໍ່ເຊີຟເວີຂອງທ່ານ",
-  "Your_workspace_is_ready": "ພື້ນທີ່ເຮັດວຽກຂອງທ່ານແມ່ນພ້ອມທີ່ຈະໃຊ້🎉"
+  "Your_workspace_is_ready": "ພື້ນທີ່ເຮັດວຽກຂອງທ່ານແມ່ນພ້ອມທີ່ຈະໃຊ້🎉",
+  "registration.page.login.errors.wrongCredentials": "ຜູ້ໃຊ້ບໍ່ໄດ້ພົບເຫັນຫລືລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ",
+  "registration.page.registration.waitActivationWarning": "ກ່ອນທີ່ທ່ານຈະສາມາດເຂົ້າສູ່ລະບົບ, ບັນຊີຂອງທ່ານຕ້ອງໄດ້ຮັບການເປີດໃຊ້ວຽກດ້ວຍຕົນເອງໂດຍຜູ້ບໍລິຫານ.",
+  "registration.page.login.forgot": "ລືມ​ລະ​ຫັດ​ຜ່ານ​",
+  "registration.page.resetPassword.sent": "ຖ້າອີເມວນີ້ຖືກລົງທະບຽນ, ພວກເຮົາຈະສົ່ງຄໍາແນະນໍາກ່ຽວກັບວິທີການປັບລະຫັດຜ່ານຂອງທ່ານ. ຖ້າທ່ານບໍ່ໄດ້ຮັບອີເມວໃນໄວໆນີ້, ກະລຸນາກັບຄືນແລະລອງອີກເທື່ອຫນຶ່ງ.",
+  "registration.component.login": "ເຂົ້າ​ສູ່​ລະ​ບົບ",
+  "registration.component.login.userNotFound": "ບໍ່ໄດ້ພົບເຫັນຜູ້ໃຊ້",
+  "registration.component.resetPassword": "ປັບລະຫັດຜ່ານ",
+  "registration.component.form.emailOrUsername": "ອີ​ເມລ​ຫຼື​ຊື່​ຜູ້​ໃຊ້",
+  "registration.component.form.email": "Email",
+  "registration.component.form.password": "ລະຫັດຜ່ານ",
+  "registration.component.form.divider": "ຫຼື",
+  "registration.component.form.submit": "ຍື່ນສະເຫນີ"
 }
